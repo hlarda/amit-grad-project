@@ -1,0 +1,6 @@
+.pio
+test
+.vscode/
+*.workspace
+*.code-workspace
+*.pdsbak
