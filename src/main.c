@@ -12,10 +12,9 @@
 
 u8 volatile temp;
 u8 max_temp=75 , min_temp=35 ;
-u8 req_temp = 60 ;
+u8 req_temp;
 u8 stability_flag = 0 , up_flag=0, down_flag=0 ;
 
-//req_temp = H_AT24C16A_Void_EEPROMRead(0x00,0x00);
 void update_temp(void);
 void up_pressed(void);
 void down_pressed(void);
@@ -31,8 +30,8 @@ int main ()
     H_LM35_Void_LM35Init();
     H_AT24C16A_Void_EEPROMInit();
 
-    H_PB_Void_PBInit(PB2);                          //up_btn            /*int0 min el kit*/
-    H_PB_Void_PBInit(PB1);                          //down_btn          /*change in config into PD3_PIN (LED fel kit 3ady ) wahed bara*/
+    H_PB_Void_PBInit(PB0);                          //up_btn            /*int0 min el kit*/
+    H_PB_Void_PBInit(PB1);                          //down_btn          /*change in config into PD3_PIN (LED fel kit) */
     H_LED_Void_LedInit(LED0);                       //red_led
     H_LED_Void_LedInit(LED1);                       //blue_led
 
@@ -41,9 +40,10 @@ int main ()
     M_ExtInt_Void_SetCallBack(INT0_CHANNEL,up_pressed);
     M_ExtInt_Void_SetCallBack(INT1_CHANNEL,down_pressed);
 
-    M_DIO_Void_SetPinDirection(PC4_PIN,OUTPUT);     //cooler_pin
-    M_DIO_Void_SetPinDirection(PC5_PIN,OUTPUT);     //heater_pin
+    M_DIO_Void_SetPinDirection(PD4_PIN,OUTPUT);     //heater_pin
+    M_DIO_Void_SetPinDirection(PD5_PIN,OUTPUT);     //cooler_pin
 
+    req_temp = H_AT24C16A_Void_EEPROMRead(0x00,0x00);
     M_GIE_Void_GlobalInterruptEnable();
     M_Timer_Void_TimerStart(TIMER0_CHANNEL);
     H_Lcd_Void_LCDWriteString("temp NOW: ");
@@ -52,16 +52,16 @@ int main ()
     while (1)
     {
         H_Lcd_Void_LCDGoTo(0,12);
-        H_Lcd_Void_LCDWriteNumber(&temp);
+        H_Lcd_Void_LCDWriteNumber(temp);
         H_Lcd_Void_LCDGoTo(1,12);
-        H_Lcd_Void_LCDWriteNumber(&req_temp);
+        H_Lcd_Void_LCDWriteNumber(req_temp);
 
         for(int i =0 ; (temp == req_temp && i<10) ; i++)
         {
             if (i==9)
             {
-                M_DIO_Void_SetPinValue(PC4_PIN,LOW);
-                M_DIO_Void_SetPinValue(PC5_PIN,LOW);
+                M_DIO_Void_SetPinValue(PD4_PIN,LOW);
+                M_DIO_Void_SetPinValue(PD5_PIN,LOW);
                 H_AT24C16A_Void_EEPROMWrite(0x00,0x00,60);
             }
             
@@ -73,7 +73,7 @@ void up_pressed(void)
 {
     if(up_flag == 0 )               //heating_mode
     {
-        M_DIO_Void_SetPinValue(PC4_PIN,HIGH);        
+        M_DIO_Void_SetPinValue(PD4_PIN,HIGH);        
         H_LED_Void_LedOn(LED0);
         up_flag   = 1;
         down_flag = 0;
@@ -89,7 +89,7 @@ void down_pressed()
 {
     if(down_flag == 0)              //cooling_mode
     {
-        M_DIO_Void_SetPinValue(PC5_PIN,HIGH);
+        M_DIO_Void_SetPinValue(PD5_PIN,HIGH);
         H_LED_Void_LedOn(LED1);
         down_flag = 1 ;
         up_flag   = 0 ;
