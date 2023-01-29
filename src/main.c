@@ -25,12 +25,15 @@ void heating_mode_OFF(void);
 void cooling_mode_OFF(void);
 void stable_mode(void);
 
+timer_isr(TMR1) {
+    update_temp();
+}
 
 int main ()
 {
-    M_Timer_Void_TimerInit();
-    M_Timer_Void_TimerSetTime(100);
-    M_Timer_Void_SetCallBack(update_temp);
+    
+    // M_Timer_Void_TimerSetTime(100);
+    // M_Timer_Void_SetCallBack(update_temp);
 
     H_Lcd_Void_LCDInit();
     H_LM35_Void_LM35Init();
@@ -51,7 +54,8 @@ int main ()
 
     req_temp = H_AT24C16A_Void_EEPROMRead(0x00,0x00);
     M_GIE_Void_GlobalInterruptEnable();
-    M_Timer_Void_TimerStart(TIMER0_CHANNEL);
+    // M_Timer_Void_TimerStart(TIMER0_CHANNEL);
+    timer_init(TMR1, PSC_64, 0.1, TMR_INT);
     H_Lcd_Void_LCDGoTo(0,0);
     H_Lcd_Void_LCDWriteString("temp NOW: ");
     H_Lcd_Void_LCDGoTo(1,0);
