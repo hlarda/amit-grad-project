@@ -18,14 +18,18 @@ u8 stability_flag = 0 , up_flag=0, down_flag=0 ;
 void update_temp(void);
 void up_pressed(void);
 void down_pressed(void);
-void heating_mode(void);
-void cooling_mode(void);
+void heating_mode_ON(void);
+void cooling_mode_ON(void);
+void heating_mode_OFF(void);
+void cooling_mode_OFF(void);
+void stable_mode(void);
+
 
 int main ()
 {
-   // M_Timer_Void_TimerInit();
-   // M_Timer_Void_TimerSetTime(100);
-   // M_Timer_Void_SetCallBack(update_temp);
+    M_Timer_Void_TimerInit();
+    M_Timer_Void_TimerSetTime(100);
+    M_Timer_Void_SetCallBack(update_temp);
 
     H_Lcd_Void_LCDInit();
     H_LM35_Void_LM35Init();
@@ -46,7 +50,7 @@ int main ()
 
     req_temp = H_AT24C16A_Void_EEPROMRead(0x00,0x00);
     M_GIE_Void_GlobalInterruptEnable();
-   // M_Timer_Void_TimerStart(TIMER0_CHANNEL);
+    M_Timer_Void_TimerStart(TIMER0_CHANNEL);
     H_Lcd_Void_LCDGoTo(0,0);
     H_Lcd_Void_LCDWriteString("temp NOW: ");
     H_Lcd_Void_LCDGoTo(1,0);
@@ -58,29 +62,30 @@ int main ()
         H_Lcd_Void_LCDWriteNumber(temp);
         H_Lcd_Void_LCDGoTo(1,12);
         H_Lcd_Void_LCDWriteNumber(req_temp);
-        if (temp == req_temp)
+
+        for(int i =0 ; (temp == req_temp && i<10) ; i++)
         {
-            for(int i =0 ; (temp == req_temp && i<10) ; i++)
+            if (i==9)
             {
-                if (i==9)
-                {
-                    M_DIO_Void_SetPinValue(PD4_PIN,LOW);
-                    M_DIO_Void_SetPinValue(PD5_PIN,LOW);
-                    H_LED_Void_LedOff(LED0);
-                    H_LED_Void_LedOff(LED1);
-                    up_flag=0;
-                    down_flag=0;
-                
-                }
+                heating_mode_OFF();
+                cooling_mode_OFF();
             }
         }
-       if (temp < req_temp)
+        for(int i =0 ; (((req_temp - temp)>= 5 ) && i<10) ; i++)
         {
-            heating_mode();
+            if (i==9)
+            {
+                heating_mode_ON();
+                cooling_mode_OFF();
+            }
         }
-        if (temp > req_temp)
+        for(int i =0 ; (((temp - req_temp)>= 5 ) && i<10) ; i++)
         {
-            cooling_mode();
+            if (i==9)
+            {
+                heating_mode_OFF();
+                cooling_mode_ON();
+            }
         }
     }
 }
@@ -89,7 +94,7 @@ void up_pressed(void)
 {
     if(up_flag == 0 )              
     {
-        heating_mode();
+        heating_mode_ON();
     }
     else if((req_temp <= max_temp-5) || temp == req_temp)
     {
@@ -100,9 +105,9 @@ void up_pressed(void)
 /**********************************************************************/
 void down_pressed()
 {
-    if(down_flag == 0)              //cooling_mode
+    if(down_flag == 0)              
     {
-       cooling_mode();
+       cooling_mode_ON();
     }
     else if((req_temp >= min_temp+5) || temp == req_temp)
     {
@@ -111,13 +116,13 @@ void down_pressed()
     }
 }
 /**********************************************************************/
-/*void update_temp(void)
+void update_temp(void)
 {   
     temp = H_LM35_U16_LM35Read();
     
-}*/
+}
 /**********************************************************************/
-void heating_mode(void)
+void heating_mode_ON(void)
 {
     M_DIO_Void_SetPinValue(PD4_PIN,HIGH);  
     M_DIO_Void_SetPinValue(PD5_PIN,LOW);  
@@ -127,7 +132,7 @@ void heating_mode(void)
     down_flag = 0;
 }
 /**********************************************************************/
-void cooling_mode(void)
+void cooling_mode_ON(void)
 {
     M_DIO_Void_SetPinValue(PD5_PIN,HIGH);
     M_DIO_Void_SetPinValue(PD4_PIN,LOW);  
@@ -135,4 +140,18 @@ void cooling_mode(void)
     H_LED_Void_LedOff(LED0);
     down_flag = 1 ;
     up_flag   = 0 ; 
+}
+/**********************************************************************/
+void heating_mode_OFF(void)
+{
+    M_DIO_Void_SetPinValue(PD4_PIN,LOW);
+    H_LED_Void_LedOff(LED0);
+    up_flag=0;
+}
+/**********************************************************************/
+void cooling_mode_OFF(void)
+{
+    M_DIO_Void_SetPinValue(PD5_PIN,LOW);
+    H_LED_Void_LedOff(LED1);
+    down_flag=0;
 }
