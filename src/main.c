@@ -25,8 +25,10 @@ void heating_mode_OFF(void);
 void cooling_mode_OFF(void);
 void stable_mode(void);
 
-timer_isr(TMR1) {
+timer_isr(TMR1)
+{
     update_temp();
+    temp++;  // will print one on LCD, proving that the timer is working but adc isn't
 }
 
 int main ()
