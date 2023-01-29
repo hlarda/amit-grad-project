@@ -10,20 +10,22 @@
 #include"LED_Interface.h"
 #include"ExtInt_Interface.h"
 
-u8 volatile temp;
+u8 volatile temp=60;
 u8 max_temp=75 , min_temp=35 ;
-u8 req_temp;
+u8 volatile req_temp;
 u8 stability_flag = 0 , up_flag=0, down_flag=0 ;
 
 void update_temp(void);
 void up_pressed(void);
 void down_pressed(void);
+void heating_mode(void);
+void cooling_mode(void);
 
 int main ()
 {
-    M_Timer_Void_TimerInit();
-    M_Timer_Void_TimerSetTime(100);
-    M_Timer_Void_SetCallBack(update_temp);
+   // M_Timer_Void_TimerInit();
+   // M_Timer_Void_TimerSetTime(100);
+   // M_Timer_Void_SetCallBack(update_temp);
 
     H_Lcd_Void_LCDInit();
     H_LM35_Void_LM35Init();
@@ -44,7 +46,7 @@ int main ()
 
     req_temp = H_AT24C16A_Void_EEPROMRead(0x00,0x00);
     M_GIE_Void_GlobalInterruptEnable();
-    M_Timer_Void_TimerStart(TIMER0_CHANNEL);
+   // M_Timer_Void_TimerStart(TIMER0_CHANNEL);
     H_Lcd_Void_LCDGoTo(0,0);
     H_Lcd_Void_LCDWriteString("temp NOW: ");
     H_Lcd_Void_LCDGoTo(1,0);
@@ -56,33 +58,40 @@ int main ()
         H_Lcd_Void_LCDWriteNumber(temp);
         H_Lcd_Void_LCDGoTo(1,12);
         H_Lcd_Void_LCDWriteNumber(req_temp);
-
-        for(int i =0 ; (temp == req_temp && i<10) ; i++)
+        if (temp == req_temp)
         {
-            if (i==9)
+            for(int i =0 ; (temp == req_temp && i<10) ; i++)
             {
-                M_DIO_Void_SetPinValue(PD4_PIN,LOW);
-                M_DIO_Void_SetPinValue(PD5_PIN,LOW);
-                H_AT24C16A_Void_EEPROMWrite(0x00,0x00,60);
+                if (i==9)
+                {
+                    M_DIO_Void_SetPinValue(PD4_PIN,LOW);
+                    M_DIO_Void_SetPinValue(PD5_PIN,LOW);
+                    H_LED_Void_LedOff(LED0);
+                    H_LED_Void_LedOff(LED1);
+                    up_flag=0;
+                    down_flag=0;
+                
+                }
             }
-            
+        }
+       if (temp < req_temp)
+        {
+            heating_mode();
+        }
+        if (temp > req_temp)
+        {
+            cooling_mode();
         }
     }
 }
 /**********************************************************************/
 void up_pressed(void)
 {
-    if(up_flag == 0 )               //heating_mode
+    if(up_flag == 0 )              
     {
-        M_DIO_Void_SetPinValue(PD4_PIN,HIGH);  
-        M_DIO_Void_SetPinValue(PD5_PIN,LOW);  
-
-        H_LED_Void_LedOn(LED0);
-        H_LED_Void_LedOff(LED1);
-        up_flag   = 1;
-        down_flag = 0;
+        heating_mode();
     }
-    else if(req_temp <= max_temp-5)
+    else if((req_temp <= max_temp-5) || temp == req_temp)
     {
         req_temp+=5;
         H_AT24C16A_Void_EEPROMWrite(0x00,0x00,req_temp);
@@ -93,32 +102,37 @@ void down_pressed()
 {
     if(down_flag == 0)              //cooling_mode
     {
-        M_DIO_Void_SetPinValue(PD5_PIN,HIGH);
-        M_DIO_Void_SetPinValue(PD4_PIN,LOW);  
-        H_LED_Void_LedOn(LED1);
-        H_LED_Void_LedOff(LED0);
-        down_flag = 1 ;
-        up_flag   = 0 ;
+       cooling_mode();
     }
-    else if(req_temp >= min_temp+5)
+    else if((req_temp >= min_temp+5) || temp == req_temp)
     {
         req_temp-=5;
         H_AT24C16A_Void_EEPROMWrite(0x00,0x00,req_temp);
     }
 }
 /**********************************************************************/
-void update_temp(void)
+/*void update_temp(void)
 {   
     temp = H_LM35_U16_LM35Read();
     
+}*/
+/**********************************************************************/
+void heating_mode(void)
+{
+    M_DIO_Void_SetPinValue(PD4_PIN,HIGH);  
+    M_DIO_Void_SetPinValue(PD5_PIN,LOW);  
+    H_LED_Void_LedOn(LED0);
+    H_LED_Void_LedOff(LED1);
+    up_flag   = 1;
+    down_flag = 0;
 }
-
-
-//#define Q_LENGTH 10
-//    u8 temp_queue[Q_LENGTH], last=-1, first=-1;
-//  
-//    /*empty*/    if (last == -1 && first == -1)
-//                    { last = 0; first = 0;  temp_queue[last] = temp;}
-//    /*full*/else if (last == Q_LENGTH-1)               
-//                    {for (u8 i = 0; i < Q_LENGTH-1 ; i++){temp_queue[i]=temp_queue[i+1];}    last--;temp_queue[Q_LENGTH-1] = temp;}
-//                else{ last++;  temp_queue[last] = temp;}
+/**********************************************************************/
+void cooling_mode(void)
+{
+    M_DIO_Void_SetPinValue(PD5_PIN,HIGH);
+    M_DIO_Void_SetPinValue(PD4_PIN,LOW);  
+    H_LED_Void_LedOn(LED1);
+    H_LED_Void_LedOff(LED0);
+    down_flag = 1 ;
+    up_flag   = 0 ; 
+}
