@@ -46,9 +46,9 @@ int main ()
     M_GIE_Void_GlobalInterruptEnable();
     timer_init(TMR1, PSC_64, 0.1 , TMR_INT);
     H_Lcd_Void_LCDGoTo(0,0);
-    H_Lcd_Void_LCDWriteString("temp NOW: ");
+    H_Lcd_Void_LCDWriteString((u8*)"temp NOW: ");
     H_Lcd_Void_LCDGoTo(1,0);
-    H_Lcd_Void_LCDWriteString("desired: ");
+    H_Lcd_Void_LCDWriteString((u8*)"desired: ");
 
     while (1)
     {
